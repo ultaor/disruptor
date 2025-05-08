@@ -15,19 +15,23 @@
  */
 package com.lmax.disruptor.sequenced;
 
-import static com.lmax.disruptor.RingBuffer.createSingleProducer;
-import static com.lmax.disruptor.support.PerfTestUtil.failIfNot;
+import com.lmax.disruptor.AbstractPerfTestDisruptor;
+import com.lmax.disruptor.EventPoller;
+import com.lmax.disruptor.EventPoller.PollState;
+import com.lmax.disruptor.PerfTestContext;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.YieldingWaitStrategy;
+import com.lmax.disruptor.support.PerfTestUtil;
+import com.lmax.disruptor.support.ValueEvent;
+import com.lmax.disruptor.util.DaemonThreadFactory;
+import com.lmax.disruptor.util.PaddedLong;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.lmax.disruptor.*;
-import com.lmax.disruptor.EventPoller.PollState;
-import com.lmax.disruptor.support.PerfTestUtil;
-import com.lmax.disruptor.support.ValueEvent;
-import com.lmax.disruptor.util.DaemonThreadFactory;
-import com.lmax.disruptor.util.PaddedLong;
+import static com.lmax.disruptor.RingBuffer.createSingleProducer;
+import static com.lmax.disruptor.support.PerfTestUtil.failIfNot;
 
 /**
  * <pre>
@@ -85,7 +89,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
         return 2;
     }
 
-    private static class PollRunnable implements Runnable, EventPoller.Handler<ValueEvent>, BatchStartAware
+    private static class PollRunnable implements Runnable, EventPoller.Handler<ValueEvent>
     {
         private final EventPoller<ValueEvent> poller;
         private volatile boolean running = true;
@@ -94,7 +98,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
         private CountDownLatch latch;
         private long count;
 
-        PollRunnable(EventPoller<ValueEvent> poller)
+        PollRunnable(final EventPoller<ValueEvent> poller)
         {
             this.poller = poller;
         }
@@ -119,7 +123,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
         }
 
         @Override
-        public boolean onEvent(ValueEvent event, long sequence, boolean endOfBatch)
+        public boolean onEvent(final ValueEvent event, final long sequence, final boolean endOfBatch)
         {
             value.set(value.get() + event.getValue());
 
@@ -155,8 +159,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
             return batchesProcessed.get();
         }
 
-        @Override
-        public void onBatchStart(long batchSize)
+        public void onBatchStart(final long batchSize)
         {
             batchesProcessed.increment();
         }
@@ -192,7 +195,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
         return perfTestContext;
     }
 
-    private void waitForEventProcessorSequence(long expectedCount) throws InterruptedException
+    private void waitForEventProcessorSequence(final long expectedCount) throws InterruptedException
     {
         while (poller.getSequence().get() != expectedCount)
         {
@@ -200,7 +203,7 @@ public final class OneToOneSequencedPollerThroughputTest extends AbstractPerfTes
         }
     }
 
-    public static void main(String[] args) throws Exception
+    public static void main(final String[] args) throws Exception
     {
         OneToOneSequencedPollerThroughputTest test = new OneToOneSequencedPollerThroughputTest();
         test.testImplementations();

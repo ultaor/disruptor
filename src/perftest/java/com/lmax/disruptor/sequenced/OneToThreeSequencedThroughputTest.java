@@ -15,18 +15,24 @@
  */
 package com.lmax.disruptor.sequenced;
 
-import static com.lmax.disruptor.RingBuffer.createSingleProducer;
-import static com.lmax.disruptor.support.PerfTestUtil.failIfNot;
+import com.lmax.disruptor.AbstractPerfTestDisruptor;
+import com.lmax.disruptor.BatchEventProcessor;
+import com.lmax.disruptor.BatchEventProcessorBuilder;
+import com.lmax.disruptor.PerfTestContext;
+import com.lmax.disruptor.RingBuffer;
+import com.lmax.disruptor.SequenceBarrier;
+import com.lmax.disruptor.YieldingWaitStrategy;
+import com.lmax.disruptor.support.Operation;
+import com.lmax.disruptor.support.ValueEvent;
+import com.lmax.disruptor.support.ValueMutationEventHandler;
+import com.lmax.disruptor.util.DaemonThreadFactory;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.lmax.disruptor.*;
-import com.lmax.disruptor.support.Operation;
-import com.lmax.disruptor.support.ValueEvent;
-import com.lmax.disruptor.support.ValueMutationEventHandler;
-import com.lmax.disruptor.util.DaemonThreadFactory;
+import static com.lmax.disruptor.RingBuffer.createSingleProducer;
+import static com.lmax.disruptor.support.PerfTestUtil.failIfNot;
 
 /**
  * <pre>
@@ -104,9 +110,9 @@ public final class OneToThreeSequencedThroughputTest extends AbstractPerfTestDis
     private final BatchEventProcessor<?>[] batchEventProcessors = new BatchEventProcessor[NUM_EVENT_PROCESSORS];
 
     {
-        batchEventProcessors[0] = new BatchEventProcessor<ValueEvent>(ringBuffer, sequenceBarrier, handlers[0]);
-        batchEventProcessors[1] = new BatchEventProcessor<ValueEvent>(ringBuffer, sequenceBarrier, handlers[1]);
-        batchEventProcessors[2] = new BatchEventProcessor<ValueEvent>(ringBuffer, sequenceBarrier, handlers[2]);
+        batchEventProcessors[0] = new BatchEventProcessorBuilder().build(ringBuffer, sequenceBarrier, handlers[0]);
+        batchEventProcessors[1] = new BatchEventProcessorBuilder().build(ringBuffer, sequenceBarrier, handlers[1]);
+        batchEventProcessors[2] = new BatchEventProcessorBuilder().build(ringBuffer, sequenceBarrier, handlers[2]);
 
         ringBuffer.addGatingSequences(
             batchEventProcessors[0].getSequence(),
@@ -154,7 +160,7 @@ public final class OneToThreeSequencedThroughputTest extends AbstractPerfTestDis
         return perfTestContext;
     }
 
-    private long sumBatches(ValueMutationEventHandler[] handlers)
+    private long sumBatches(final ValueMutationEventHandler[] handlers)
     {
         long sum = 0;
         for (ValueMutationEventHandler handler : handlers)
@@ -164,7 +170,7 @@ public final class OneToThreeSequencedThroughputTest extends AbstractPerfTestDis
         return sum;
     }
 
-    public static void main(String[] args) throws Exception
+    public static void main(final String[] args) throws Exception
     {
         new OneToThreeSequencedThroughputTest().testImplementations();
     }
